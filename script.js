@@ -4,6 +4,7 @@ const scoreElement = document.querySelector('.score');
 const startButton = document.createElement('button');
 
 const gridSize = 20;
+const speed = 4; // Não é mais usado diretamente com requestAnimationFrame
 let snake = [{ x: 10, y: 10 }];
 let food = {};
 let direction = 'right';
@@ -13,9 +14,10 @@ let gameOver = false;
 let isGameRunning = false;
 let touchStartX = 0;
 let touchStartY = 0;
+let lastUpdateTime = 0; // Armazena o tempo do último update
 let gameLoop;
 
-// Estiliza o botão "Start"
+// Botão "Start"
 startButton.textContent = 'Start';
 startButton.style.position = 'absolute';
 startButton.style.top = '50%';
@@ -38,6 +40,7 @@ canvas.height = window.innerHeight;
 // Event listeners
 document.addEventListener('keydown', handleKeyPress);
 startButton.addEventListener('click', startGame);
+window.addEventListener('resize', resizeCanvas);
 
 // Previne o scroll na tela (mobile)
 document.addEventListener('touchmove', function(event) {
@@ -48,10 +51,8 @@ document.addEventListener('touchmove', function(event) {
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    // Você pode precisar redesenhar o jogo aqui se o tamanho mudar
+    // Redesenha o jogo se necessário
 }
-
-window.addEventListener('resize', resizeCanvas);
 
 function handleKeyPress(event) {
     if (isGameRunning) {
@@ -67,12 +68,12 @@ function handleKeyPress(event) {
 // Touch events
 canvas.addEventListener('touchstart', function(event) {
     if (!isGameRunning) {
-        startGame(); // Inicia o jogo se ainda não estiver rodando
+        startGame();
     } else {
         touchStartX = event.touches[0].clientX;
         touchStartY = event.touches[0].clientY;
     }
-    event.preventDefault(); // Previne comportamento padrão de toque
+    event.preventDefault();
 }, false);
 
 canvas.addEventListener('touchmove', function(event) {
@@ -91,9 +92,9 @@ canvas.addEventListener('touchmove', function(event) {
         nextDirection = (dy > 0 && direction !== 'up') ? 'down' : (dy < 0 && direction !== 'down') ? 'up' : nextDirection;
     }
 
-    touchStartX = 0; // Reseta a posição inicial X do toque
-    touchStartY = 0; // Reseta a posição inicial Y do toque
-    event.preventDefault(); // Previne comportamento padrão de toque
+    touchStartX = 0;
+    touchStartY = 0;
+    event.preventDefault();
 }, false);
 
 function generateFood() {
@@ -115,38 +116,50 @@ function draw() {
     context.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
 }
 
-function update() {
+// Função de atualização principal
+function update(timestamp) {
     if (!isGameRunning) return;
 
-    direction = nextDirection;
-    const head = { x: snake[0].x, y: snake[0].y };
+    // Calcula o tempo desde o último update
+    const deltaTime = timestamp - lastUpdateTime;
 
-    switch (direction) {
-        case 'up': head.y--; break;
-        case 'down': head.y++; break;
-        case 'left': head.x--; break;
-        case 'right': head.x++; break;
+    // Atualiza o jogo apenas se tiver passado tempo suficiente (ex: 150ms)
+    if (deltaTime > 150) {
+        direction = nextDirection;
+        const head = { x: snake[0].x, y: snake[0].y };
+
+        switch (direction) {
+            case 'up': head.y--; break;
+            case 'down': head.y++; break;
+            case 'left': head.x--; break;
+            case 'right': head.x++; break;
+        }
+
+        if (head.x === food.x && head.y === food.y) {
+            score++;
+            scoreElement.textContent = 'Pontuação: ' + score;
+            generateFood();
+        } else {
+            snake.pop();
+        }
+
+        if (head.x < 0 || head.x >= canvas.width / gridSize || head.y < 0 || head.y >= canvas.height / gridSize || checkCollision(head)) {
+            gameOver = true;
+            isGameRunning = false;
+            cancelAnimationFrame(gameLoop); // Para o loop
+            startButton.style.display = 'block';
+            alert('Game Over! Pontuação: ' + score);
+            return;
+        }
+
+        snake.unshift(head);
+        draw();
+
+        lastUpdateTime = timestamp; // Atualiza o tempo do último update
     }
 
-    if (head.x === food.x && head.y === food.y) {
-        score++;
-        scoreElement.textContent = 'Pontuação: ' + score;
-        generateFood();
-    } else {
-        snake.pop();
-    }
-
-    if (head.x < 0 || head.x >= canvas.width / gridSize || head.y < 0 || head.y >= canvas.height / gridSize || checkCollision(head)) {
-        gameOver = true;
-        isGameRunning = false;
-        clearInterval(gameLoop);
-        startButton.style.display = 'block';
-        alert('By yonxr_ \nGame Over! \nPontuação: ' + score);
-        return;
-    }
-
-    snake.unshift(head);
-    draw();
+    // Solicita o próximo frame
+    gameLoop = requestAnimationFrame(update);
 }
 
 function checkCollision(head) {
@@ -166,7 +179,8 @@ function startGame() {
 
         isGameRunning = true;
         startButton.style.display = 'none';
-        gameLoop = setInterval(update, 150);
+        lastUpdateTime = performance.now(); // Inicializa o tempo do último update
+        gameLoop = requestAnimationFrame(update); // Inicia o loop do jogo
     }
 }
 
