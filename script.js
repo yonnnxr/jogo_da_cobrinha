@@ -23,7 +23,7 @@ startButton.style.left = '50%';
 startButton.style.transform = 'translate(-50%, -50%)';
 startButton.style.padding = '10px 20px';
 startButton.style.fontSize = '20px';
-startButton.style.zIndex = '10'; // Garante que o botão fique acima do canvas
+startButton.style.zIndex = '10';
 document.body.appendChild(startButton);
 
 // Event listeners

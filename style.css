@@ -4,12 +4,14 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: #f0f0f0;
+    background-color: #000000;
     margin: 0;
     overflow: hidden; /* Impede a rolagem */
     -webkit-overflow-scrolling: touch; /* Melhora o scroll em dispositivos iOS */
 }
-
+h1 {
+    color: #ffffff;
+}
 canvas {
     background-color: #4CAF50;
     border: 2px solid #2E8B57;
@@ -17,6 +19,6 @@ canvas {
 
 .score {
     font-size: 24px;
-    color: #333;
+    color: #ffffff;
     margin-bottom: 20px;
 }
