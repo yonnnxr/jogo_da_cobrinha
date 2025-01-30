@@ -1,61 +1,76 @@
 const canvas = document.getElementById('gameCanvas');
 const context = canvas.getContext('2d');
 const scoreElement = document.querySelector('.score');
+const startButton = document.createElement('button'); // Cria o botão start
 
 const gridSize = 20;
 let snake = [{ x: 10, y: 10 }];
 let food = {};
 let direction = 'right';
-let nextDirection = direction; // Fila para a próxima direção
+let nextDirection = direction;
 let score = 0;
 let gameOver = false;
-let isGameRunning = false; // Controla se o jogo está rodando
+let isGameRunning = false;
 let touchStartX = 0;
 let touchStartY = 0;
-let gameLoop; // Variável para o intervalo do jogo
+let gameLoop;
 
+// Estiliza o botão "Start"
+startButton.textContent = 'Start';
+startButton.style.position = 'absolute';
+startButton.style.top = '50%';
+startButton.style.left = '50%';
+startButton.style.transform = 'translate(-50%, -50%)';
+startButton.style.padding = '10px 20px';
+startButton.style.fontSize = '20px';
+startButton.style.zIndex = '10'; // Garante que o botão fique acima do canvas
+document.body.appendChild(startButton);
+
+// Event listeners
 document.addEventListener('keydown', handleKeyPress);
 canvas.addEventListener('touchstart', handleTouchStart);
 canvas.addEventListener('touchmove', handleTouchMove);
+startButton.addEventListener('click', startGame); // Inicia o jogo ao clicar no botão
+
+// Previne o scroll na tela (mobile)
+document.addEventListener('touchmove', function(event) {
+    event.preventDefault();
+}, { passive: false });
 
 function handleKeyPress(event) {
-    if (!isGameRunning) {
-        isGameRunning = true;
-    }
-    switch (event.key) {
-        case 'ArrowUp': if (direction !== 'down') nextDirection = 'up'; break;
-        case 'ArrowDown': if (direction !== 'up') nextDirection = 'down'; break;
-        case 'ArrowLeft': if (direction !== 'right') nextDirection = 'left'; break;
-        case 'ArrowRight': if (direction !== 'left') nextDirection = 'right'; break;
+    if (isGameRunning) { // Só aceita comandos se o jogo estiver rodando
+        switch (event.key) {
+            case 'ArrowUp': if (direction !== 'down') nextDirection = 'up'; break;
+            case 'ArrowDown': if (direction !== 'up') nextDirection = 'down'; break;
+            case 'ArrowLeft': if (direction !== 'right') nextDirection = 'left'; break;
+            case 'ArrowRight': if (direction !== 'left') nextDirection = 'right'; break;
+        }
     }
 }
 
 function handleTouchStart(event) {
-    if (!isGameRunning) {
-        isGameRunning = true;
+    if (isGameRunning) { // Só aceita comandos se o jogo estiver rodando
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
     }
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
 }
 
 function handleTouchMove(event) {
-    if (!touchStartX || !touchStartY) {
-        return;
+    if (isGameRunning && touchStartX && touchStartY) { // Só aceita comandos se o jogo estiver rodando
+        const touchEndX = event.touches[0].clientX;
+        const touchEndY = event.touches[0].clientY;
+        const dx = touchEndX - touchStartX;
+        const dy = touchEndY - touchStartY;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            nextDirection = (dx > 0 && direction !== 'left') ? 'right' : (dx < 0 && direction !== 'right') ? 'left' : nextDirection;
+        } else {
+            nextDirection = (dy > 0 && direction !== 'up') ? 'down' : (dy < 0 && direction !== 'down') ? 'up' : nextDirection;
+        }
+
+        touchStartX = 0;
+        touchStartY = 0;
     }
-
-    const touchEndX = event.touches[0].clientX;
-    const touchEndY = event.touches[0].clientY;
-    const dx = touchEndX - touchStartX;
-    const dy = touchEndY - touchStartY;
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-        nextDirection = (dx > 0 && direction !== 'left') ? 'right' : (dx < 0 && direction !== 'right') ? 'left' : nextDirection;
-    } else {
-        nextDirection = (dy > 0 && direction !== 'up') ? 'down' : (dy < 0 && direction !== 'down') ? 'up' : nextDirection;
-    }
-
-    touchStartX = 0;
-    touchStartY = 0;
 }
 
 function generateFood() {
@@ -78,12 +93,9 @@ function draw() {
 }
 
 function update() {
-    if (!isGameRunning || gameOver) {
-        return;
-    }
+    if (!isGameRunning) return; // Não atualiza se o jogo não estiver rodando
 
-    direction = nextDirection; // Atualiza a direção no início do ciclo
-
+    direction = nextDirection;
     const head = { x: snake[0].x, y: snake[0].y };
 
     switch (direction) {
@@ -103,8 +115,10 @@ function update() {
 
     if (head.x < 0 || head.x >= canvas.width / gridSize || head.y < 0 || head.y >= canvas.height / gridSize || checkCollision(head)) {
         gameOver = true;
+        isGameRunning = false; // Para o loop do jogo
+        clearInterval(gameLoop); // Para o intervalo
+        startButton.style.display = 'block'; // Mostra o botão novamente
         alert('Game Over! Pontuação: ' + score);
-        clearInterval(gameLoop); // Para o loop do jogo
         return;
     }
 
@@ -113,7 +127,7 @@ function update() {
 }
 
 function checkCollision(head) {
-    for (let i = 4; i < snake.length; i++) { // Começa a verificar a partir do 5º segmento (índice 4)
+    for (let i = 1; i < snake.length; i++) { // Começa a verificação a partir do segundo segmento
         if (head.x === snake[i].x && head.y === snake[i].y) {
             return true;
         }
@@ -121,5 +135,32 @@ function checkCollision(head) {
     return false;
 }
 
+// Função para iniciar o jogo
+function startGame() {
+    if (!isGameRunning) {
+        // Reinicia o jogo se ele tiver acabado
+        if (gameOver) {
+            resetGame();
+        }
+
+        isGameRunning = true;
+        startButton.style.display = 'none'; // Oculta o botão
+        gameLoop = setInterval(update, 150); // Inicia o loop do jogo
+    }
+}
+
+// Função para reiniciar o jogo
+function resetGame() {
+    gameOver = false;
+    score = 0;
+    snake = [{ x: 10, y: 10 }];
+    direction = 'right';
+    nextDirection = direction;
+    generateFood();
+    scoreElement.textContent = 'Pontuação: ' + score;
+    draw(); // Desenha o estado inicial
+}
+
+// Configuração inicial
 generateFood();
-gameLoop = setInterval(update, 150); // Aumentado o intervalo para 150 milissegundos
+draw(); // Desenha o estado inicial do jogo

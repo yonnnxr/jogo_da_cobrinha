@@ -6,6 +6,8 @@ body {
     height: 100vh;
     background-color: #f0f0f0;
     margin: 0;
+    overflow: hidden; /* Impede a rolagem */
+    -webkit-overflow-scrolling: touch; /* Melhora o scroll em dispositivos iOS */
 }
 
 canvas {
