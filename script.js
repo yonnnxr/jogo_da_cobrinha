@@ -154,7 +154,7 @@ function resetGame() {
     gameOver = false;
     score = 0;
     snake = [{ x: 10, y: 10 }];
-    direction = 'right';
+    direction = 'left';
     nextDirection = direction;
     generateFood();
     scoreElement.textContent = 'Pontuação: ' + score;
